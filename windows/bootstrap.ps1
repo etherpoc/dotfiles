@@ -138,9 +138,9 @@ try {
 Step "Done"
 Write-Host ""
 Write-Host "次の手順:" -ForegroundColor Green
-Write-Host "  1. (初回のみ) WSL2 が新規導入された場合は PC 再起動 → スタートメニューから"
-Write-Host "     Ubuntu を起動 → Unix ユーザー (etherpoc) とパスワードを設定"
-Write-Host "  2. スタートメニューから WezTerm を起動 (以降の通常運用もこれ)"
+Write-Host "  1. WSL2 が新規導入された場合は PC を再起動"
+Write-Host "  2. スタートメニューから WezTerm を起動"
+Write-Host "     (Ubuntu 初回ならその場で Unix ユーザー (etherpoc) とパスワードを聞かれる)"
 Write-Host "  3. WezTerm 内で次を実行:"
 Write-Host "       curl -fsSL https://raw.githubusercontent.com/etherpoc/dotfiles/main/scripts/install.sh | bash"
 Write-Host ""
