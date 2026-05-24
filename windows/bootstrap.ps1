@@ -83,7 +83,12 @@ function Install-FontPack {
 
     $userFonts     = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
     $regPath       = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
-    $versionMarker = Join-Path $userFonts ".$Name.version"
+
+    # マーカーは Fonts フォルダ外に置く (Fonts フォルダは Windows が特殊扱いし
+    # 非フォントファイルを認識しないことがあるため)
+    $markerDir     = Join-Path $env:LOCALAPPDATA "dotfiles\fonts"
+    $versionMarker = Join-Path $markerDir "$Name.version"
+    New-Item -ItemType Directory -Path $markerDir -Force | Out-Null
 
     # 既に同バージョンのマーカーがあればスキップ
     if (Test-Path $versionMarker) {
