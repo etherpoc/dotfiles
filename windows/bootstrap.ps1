@@ -58,8 +58,11 @@ $gitExe = "$env:ProgramFiles\Git\bin\git.exe"
 if (-not (Test-Path $gitExe)) { $gitExe = "git" }  # PATH 経由のフォールバック
 
 if (Test-Path (Join-Path $DotfilesDir ".git")) {
-    Write-Host "  Repo exists; pulling latest"
-    & $gitExe -C $DotfilesDir pull --ff-only
+    Write-Host "  Repo exists; resetting to origin/main"
+    # 既存 clone がリポジトリ作り直し前の古いブランチに取り残されているケースに備えて、
+    # ブランチ何であれ origin/main の最新に強制的に揃える。
+    & $gitExe -C $DotfilesDir fetch origin
+    & $gitExe -C $DotfilesDir checkout -B main origin/main
 } else {
     & $gitExe clone $RepoUrl $DotfilesDir
 }
