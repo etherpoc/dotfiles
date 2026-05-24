@@ -116,16 +116,19 @@ Install-FontPack `
     -Name "JetBrainsMono"
 
 # PlemolJP Console NF (latest release を API で解決)
+# asset 名は時期によって PlemolJP_NF_v1.2.3.zip / PlemolJP_NF-v1.2.3.zip など揺れるので
+# regex で吸収しつつ、PlemolJP_NF35_* (3:5 比率版) は除外。
 try {
     $plemolApi = Invoke-RestMethod -Uri "https://api.github.com/repos/yuru7/PlemolJP/releases/latest" -UseBasicParsing
-    $asset = $plemolApi.assets | Where-Object { $_.name -like "PlemolJP_NF-*.zip" } | Select-Object -First 1
+    $asset = $plemolApi.assets | Where-Object { $_.name -match '^PlemolJP_NF[-_]v.+\.zip$' } | Select-Object -First 1
     if ($asset) {
         Install-FontPack `
             -Url $asset.browser_download_url `
             -Name "PlemolJP" `
             -SubdirFilter "PlemolJPConsole_NF"
     } else {
-        Write-Host "  PlemolJP_NF asset not found; skipping" -ForegroundColor Yellow
+        Write-Host "  PlemolJP_NF asset not found; available assets:" -ForegroundColor Yellow
+        $plemolApi.assets | ForEach-Object { Write-Host "    - $($_.name)" -ForegroundColor Yellow }
     }
 } catch {
     Write-Host "  PlemolJP fetch failed: $_" -ForegroundColor Yellow
