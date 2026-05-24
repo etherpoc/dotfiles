@@ -32,7 +32,9 @@ if [ "$CURRENT_SHELL" = "$ZSH_PATH" ]; then
   echo "[register-zsh] Login shell is already $ZSH_PATH."
 else
   echo "[register-zsh] Changing login shell from $CURRENT_SHELL to $ZSH_PATH..."
-  chsh -s "$ZSH_PATH"
+  # chsh は Ubuntu の PAM 設定で root でも認証を要求することがあるため、
+  # usermod で /etc/passwd を直接書き換える。
+  sudo usermod -s "$ZSH_PATH" "$USER"
 fi
 
 echo

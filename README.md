@@ -20,8 +20,12 @@ Nix + Home Manager で管理する個人開発環境。Windows 11 + WSL2 (Ubuntu
 │   ├── editor/neovim.nix
 │   └── fonts.nix
 ├── lazyvim/                  # LazyVim 設定。~/.config/nvim へ activation で symlink
-├── windows/wezterm.lua       # Windows ホスト側に手動配置
-└── scripts/register-zsh.sh   # /etc/shells 登録 + chsh の一回限りスクリプト
+├── windows/
+│   ├── bootstrap.ps1         # Windows ホスト側の冪等セットアップ (管理者 PS で実行)
+│   └── wezterm.lua           # bootstrap.ps1 が %USERPROFILE%\.wezterm.lua に配置
+└── scripts/
+    ├── install.sh            # WSL2 内の Nix 導入 〜 home-manager switch を一気通貫
+    └── register-zsh.sh       # /etc/shells 登録 + chsh (install.sh から呼ばれる)
 ```
 
 ## 採用ツール
@@ -50,56 +54,37 @@ Nix + Home Manager で管理する個人開発環境。Windows 11 + WSL2 (Ubuntu
 
 ### 1. Windows 側
 
-PowerShell(管理者)で:
+管理者 PowerShell で:
 
 ```powershell
-wsl --install -d Ubuntu
-winget install --id wez.wezterm -e
-winget install --id Git.Git -e
+irm https://raw.githubusercontent.com/etherpoc/dotfiles/main/windows/bootstrap.ps1 | iex
 ```
 
-フォントは手動 DL してインストール:
-- JetBrainsMono Nerd Font: https://www.nerdfonts.com/font-downloads
-- PlemolJP_NF: https://github.com/yuru7/PlemolJP/releases
+`windows/bootstrap.ps1` がやること(冪等):
+- winget で WSL2 + Ubuntu / WezTerm / Git / Windows Terminal をインストール
+- JetBrainsMono Nerd Font と PlemolJP Console NF をユーザースコープで配置
+- repo を `$env:USERPROFILE\dotfiles` に clone
+- `windows/wezterm.lua` を `%USERPROFILE%\.wezterm.lua` にコピー
 
-repo を clone して `wezterm.lua` を配置:
-
-```powershell
-git clone git@github.com:etherpoc/dotfiles.git $env:USERPROFILE\dotfiles
-Copy-Item -Path $env:USERPROFILE\dotfiles\windows\wezterm.lua `
-          -Destination $env:USERPROFILE\.wezterm.lua -Force
-```
-
-PC を再起動 → スタートメニューから Ubuntu を初回起動 → Unix ユーザー名(`etherpoc`)とパスワードを設定。
+完了後、必要なら PC 再起動 → スタートメニューから WezTerm を起動(Ubuntu 初回ならその場で Unix ユーザー(`etherpoc`)とパスワードを聞かれる)。
 
 ### 2. WSL2 内
 
 ```bash
-sudo apt update && sudo apt install -y curl git xz-utils
-
-# Nix (Determinate Systems Installer)
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-# → 新しいシェルを開き直す
-
-git clone git@github.com:etherpoc/dotfiles.git ~/dotfiles
-cd ~/dotfiles
-nix run home-manager/master -- switch --flake .#wsl-ubuntu --impure
-
-# シェル切替(/etc/shells 登録 + chsh、sudo パスを 1 度聞かれる)
-bash scripts/register-zsh.sh
-
-# mise 管理の runtime を取得
-mise install
-
-# Claude Code 認証
-claude
-
-# Copilot 認証
-nvim
-# :Copilot auth
+curl -fsSL https://raw.githubusercontent.com/etherpoc/dotfiles/main/scripts/install.sh | bash
 ```
 
-`--impure` は `home.username` を `$USER` から取るために必要。
+`scripts/install.sh` がやること(冪等):
+- apt prereqs(curl / git / xz-utils)
+- Nix を Determinate Systems Installer でインストール
+- repo を `~/dotfiles` に clone(既にあれば pull)
+- `nix run home-manager/master -- switch --flake .#wsl-ubuntu --impure`
+- `scripts/register-zsh.sh` で `/etc/shells` 登録 + `chsh`
+- `mise install` で global runtime を取得
+
+完了後の手動ステップは Claude Code 認証(`claude`)と Copilot 認証(`nvim` → `:Copilot auth`)のみ。
+
+> `--impure` は `home.username` を `$USER` から取るために必要。
 
 ---
 
@@ -139,8 +124,6 @@ LazyVim 設定(`lazyvim/`)は symlink なので、編集すれば `home-manager 
 
 ## TODO
 
-- [ ] `windows/bootstrap.ps1` — winget / フォント / WSL2 / wezterm.lua 配置を冪等にまとめる
-- [ ] `install.sh` — WSL2 内の Nix 導入から home-manager switch までを一気通貫
 - [ ] macOS 対応(`hosts/macbook/`、Home Manager のみで開始)
 - [ ] bat / delta の Catppuccin Mocha テーマファイル取り込み
 - [ ] Zellij `dev.kdl` レイアウトに Neovim / Claude Code / shell ペインを配置
