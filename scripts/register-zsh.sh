@@ -32,7 +32,9 @@ if [ "$CURRENT_SHELL" = "$ZSH_PATH" ]; then
   echo "[register-zsh] Login shell is already $ZSH_PATH."
 else
   echo "[register-zsh] Changing login shell from $CURRENT_SHELL to $ZSH_PATH..."
-  chsh -s "$ZSH_PATH"
+  # sudo chsh だと PAM プロンプト無し (直前の sudo キャッシュ流用)。chsh 単体だと
+  # ユーザー自身のパスワードを聞かれるが PAM が拒否することがあるため避ける。
+  sudo chsh -s "$ZSH_PATH" "$USER"
 fi
 
 echo
