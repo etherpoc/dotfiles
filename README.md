@@ -66,7 +66,7 @@ irm https://raw.githubusercontent.com/etherpoc/dotfiles/main/windows/bootstrap.p
 - repo を `$env:USERPROFILE\dotfiles` に clone
 - `windows/wezterm.lua` を `%USERPROFILE%\.wezterm.lua` にコピー
 
-完了後、必要なら PC 再起動 → スタートメニューから Ubuntu を起動 → Unix ユーザー(`etherpoc`)とパスワードを設定。
+完了後、必要なら PC 再起動 → スタートメニューから WezTerm を起動(Ubuntu 初回ならその場で Unix ユーザー(`etherpoc`)とパスワードを聞かれる)。
 
 ### 2. WSL2 内
 
