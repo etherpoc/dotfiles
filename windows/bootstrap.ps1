@@ -71,22 +71,35 @@ $weztermDst = Join-Path $env:USERPROFILE ".wezterm.lua"
 Copy-Item -Path $weztermSrc -Destination $weztermDst -Force
 Write-Host "  $weztermSrc -> $weztermDst"
 
-# 5. フォントインストール (ユーザースコープ)
+# 5. フォントインストール (ユーザースコープ、バージョンマーカーで冪等化)
 function Install-FontPack {
     param(
         [string]$Url,
         [string]$Name,
+        [string]$Version,
         [string]$FileFilter = "*.ttf",
         [string]$SubdirFilter = ""
     )
-    Write-Host "  [$Name] downloading..."
+
+    $userFonts     = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
+    $regPath       = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
+    $versionMarker = Join-Path $userFonts ".$Name.version"
+
+    # 既に同バージョンのマーカーがあればスキップ
+    if (Test-Path $versionMarker) {
+        $current = (Get-Content $versionMarker -Raw -ErrorAction SilentlyContinue).Trim()
+        if ($current -eq $Version) {
+            Write-Host "  [$Name] $Version already installed; skipping"
+            return
+        }
+    }
+
+    Write-Host "  [$Name] downloading $Version..."
     $tempDir = New-Item -ItemType Directory -Path (Join-Path $env:TEMP "dotfiles-fonts\$Name") -Force
     $zipPath = Join-Path $tempDir "font.zip"
     Invoke-WebRequest -Uri $Url -OutFile $zipPath -UseBasicParsing
     Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
 
-    $userFonts = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
-    $regPath   = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
     New-Item -ItemType Directory -Path $userFonts -Force | Out-Null
     if (-not (Test-Path $regPath)) { New-Item -Path $regPath -Force | Out-Null }
 
@@ -105,15 +118,23 @@ function Install-FontPack {
         $fontName = "$($font.BaseName) (TrueType)"
         Set-ItemProperty -Path $regPath -Name $fontName -Value $dest -Type String -Force
     }
+
+    Set-Content -Path $versionMarker -Value $Version -NoNewline
     Write-Host "    installed $($fonts.Count) font file(s)"
 }
 
 Step "Installing fonts"
 
 # JetBrainsMono Nerd Font
-Install-FontPack `
-    -Url "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" `
-    -Name "JetBrainsMono"
+try {
+    $nerdRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest" -UseBasicParsing
+    Install-FontPack `
+        -Url "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" `
+        -Name "JetBrainsMono" `
+        -Version $nerdRelease.tag_name
+} catch {
+    Write-Host "  JetBrainsMono fetch failed: $_" -ForegroundColor Yellow
+}
 
 # PlemolJP Console NF (latest release を API で解決)
 # asset 名は時期によって PlemolJP_NF_v1.2.3.zip / PlemolJP_NF-v1.2.3.zip など揺れるので
@@ -125,6 +146,7 @@ try {
         Install-FontPack `
             -Url $asset.browser_download_url `
             -Name "PlemolJP" `
+            -Version $plemolApi.tag_name `
             -SubdirFilter "PlemolJPConsole_NF"
     } else {
         Write-Host "  PlemolJP_NF asset not found; available assets:" -ForegroundColor Yellow
